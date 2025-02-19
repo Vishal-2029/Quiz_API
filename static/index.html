@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golang Quiz</title>
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.prod.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        .quiz-container { width: 50%; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+        .option { cursor: pointer; padding: 5px; margin: 5px; background: #eee; display: block; border-radius: 5px; }
+        .option:hover { background: #ddd; }
+        .correct { background: #a0e6a0; }
+        .wrong { background: #e6a0a0; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Golang Quiz</h1>
+        <div v-if="currentQuestion < questions.length" class="quiz-container">
+            <h2>{{ questions[currentQuestion].question }}</h2>
+            <div v-for="(option, index) in questions[currentQuestion].options" 
+                 :key="index" 
+                 @click="checkAnswer(index)"
+                 :class="{'option': true, 'correct': selectedAnswer === index && index === questions[currentQuestion].answer, 'wrong': selectedAnswer === index && index !== questions[currentQuestion].answer}">
+                {{ option }}
+            </div>
+            <button v-if="selectedAnswer !== null" @click="nextQuestion">Next</button>
+        </div>
+        <div v-else>
+            <h2>Quiz Completed!</h2>
+            <p>Your Score: {{ score }} / {{ questions.length }}</p>
+            <button @click="restartQuiz">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    questions: [],
+                    currentQuestion: 0,
+                    selectedAnswer: null,
+                    score: 0,
+                    ws: null,
+                };
+            },
+            methods: {
+                fetchQuestions() {
+                    fetch('/api/questions')
+                        .then(response => response.json())
+                        .then(data => { this.questions = data; });
+                },
+                checkAnswer(index) {
+                    this.selectedAnswer = index;
+                    if (index === this.questions[this.currentQuestion].answer) {
+                        this.score++;
+                    }
+                    this.ws.send(JSON.stringify({ question: this.currentQuestion, answer: index }));
+                },
+                nextQuestion() {
+                    this.currentQuestion++;
+                    this.selectedAnswer = null;
+                },
+                restartQuiz() {
+                    this.currentQuestion = 0;
+                    this.score = 0;
+                    this.selectedAnswer = null;
+                },
+                setupWebSocket() {
+                    this.ws = new WebSocket("ws://localhost:3000/ws");
+                    this.ws.onmessage = event => {
+                        console.log("WebSocket Message:", event.data);
+                    };
+                }
+            },
+            mounted() {
+                this.fetchQuestions();
+                this.setupWebSocket();
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
