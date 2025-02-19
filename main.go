@@ -13,7 +13,7 @@ func main() {
 	app := fiber.New()
 
 	// Serve static files (HTML)
-	app.Static("/", "/static")
+	app.Static("/", "/frontEnd")
 
 	// WebSocket route
 		app.Get("/ws", websocket.New(ws.HandleWebSocket))
